@@ -11,13 +11,19 @@ names = [
     "John Smith Pvt Ltd", "Jon Smyth", "Jane Doe", "Janet Doe",
     "Michael Johnson", "Michel Jonson", "Mick Jhonson",
     "Alicia Keys Pte", "Alisha Keyes", "Alice Key",
-    "Jonson Micheal", "Micheal A. Jonson", "Johnson Michael Inc"
+    "Jonson Micheal", "Micheal A. Jonson", "Johnson Michael Inc",
+    "Johnson & Johnson Pvt Ltd", "The Bank of America"
 ]
 
 # -------------------------------
-# 2. Noise words to remove
+# 2. Noise words & stopwords
 # -------------------------------
-NOISE_WORDS = {"pte", "pvt", "ltd", "inc", "corp", "co", "company", "llc", "plc"}
+NOISE_WORDS = {
+    "pte", "pvt", "ltd", "inc", "corp", "co", "company", "llc", "plc"
+}
+STOP_WORDS = {
+    "and", "of", "&", "the", "for", "in", "at", "by"
+}
 
 # -------------------------------
 # 3. Preprocessing function
@@ -25,12 +31,14 @@ NOISE_WORDS = {"pte", "pvt", "ltd", "inc", "corp", "co", "company", "llc", "plc"
 def normalize_name(name: str) -> str:
     # Lowercase
     name = name.lower()
+    # Replace & with 'and' for consistency
+    name = name.replace("&", " and ")
     # Remove punctuation
     name = re.sub(r"[^\w\s]", " ", name)
     # Tokenize
     tokens = name.split()
-    # Remove noise words
-    tokens = [t for t in tokens if t not in NOISE_WORDS]
+    # Remove noise words and stopwords
+    tokens = [t for t in tokens if t not in NOISE_WORDS and t not in STOP_WORDS]
     # Sort tokens alphabetically for order-insensitivity
     tokens.sort()
     return " ".join(tokens)
@@ -46,7 +54,7 @@ name_vectors = vectorizer.fit_transform(normalized_names).astype(np.float32).toa
 name_vectors = normalize(name_vectors, norm='l2')
 
 # -------------------------------
-# 5. Build FAISS index
+# 5. Build FAISS CPU index
 # -------------------------------
 dimension = name_vectors.shape[1]
 index = faiss.IndexFlatIP(dimension)  # Cosine similarity via inner product
@@ -87,7 +95,7 @@ def find_similar_names(query, top_k=5, exact_threshold=0.95, partial_threshold=0
 # 7. Example usage
 # -------------------------------
 if __name__ == "__main__":
-    query_name = "Pvt Micheal Jonson Ltd"
+    query_name = "The Pvt Micheal Jonson & Co Ltd"
     matches = find_similar_names(query_name, top_k=5)
 
     print(f"Query: {query_name}")
